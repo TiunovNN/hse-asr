@@ -2,6 +2,7 @@ import torch
 from tqdm.auto import tqdm
 
 from src.metrics.tracker import MetricTracker
+from src.metrics.utils import calc_cer, calc_wer
 from src.trainer.base_trainer import BaseTrainer
 
 
@@ -143,14 +144,19 @@ class Inferencer(BaseTrainer):
             # clone because of
             # https://github.com/pytorch/pytorch/issues/1995
             logits = batch["log_probs"][i].clone()
-            label = batch["text"][i].clone()
-            pred_label = logits.argmax(dim=-1)
+            target_text = batch["text"][i]
+            target_text = self.text_encoder.normalize_text(target_text)
+            length = batch["log_probs_length"][i]
+            predicted_text = self.text_encoder.ctc_decode(logits[:length])
 
             output_id = current_id + i
 
             output = {
-                "pred_label": pred_label,
-                "label": label,
+                "target_text": target_text,
+                "predicted_text": predicted_text,
+                "audio_path": batch["audio_path"][i],
+                "cer": calc_cer(target_text, predicted_text) * 100,
+                "wer": calc_wer(target_text, predicted_text) * 100,
             }
 
             if self.save_path is not None:

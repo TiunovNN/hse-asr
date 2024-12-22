@@ -97,27 +97,20 @@ class Trainer(BaseTrainer):
         # this logging can also be improved significantly
 
         log_probs = log_probs.cpu()
-        argmax_inds = log_probs.argmax(-1).numpy()
-        argmax_inds = (
-            inds[: int(ind_len)]
-            for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
-        )
-        argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
-        argmax_texts = [
+        predicted_texts = [
             self.text_encoder.ctc_decode(inds[: int(length)])
             for inds, length in zip(log_probs, log_probs_length)
         ]
-        tuples = zip(argmax_texts, text, argmax_texts_raw, audio_path)
+        tuples = zip(predicted_texts, text, audio_path)
 
         rows = {}
-        for pred, target, raw_pred, audio_path in tuples[:examples_to_log]:
+        for pred, target, audio_path in tuples[:examples_to_log]:
             target = self.text_encoder.normalize_text(target)
             wer = calc_wer(target, pred) * 100
             cer = calc_cer(target, pred) * 100
 
             rows[Path(audio_path).name] = {
                 "target": target,
-                "raw prediction": raw_pred,
                 "predictions": pred,
                 "wer": wer,
                 "cer": cer,

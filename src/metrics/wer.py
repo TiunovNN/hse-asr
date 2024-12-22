@@ -1,4 +1,5 @@
 import statistics
+
 from torch import Tensor
 
 from src.metrics.base_metric import BaseMetric
@@ -23,4 +24,4 @@ class WERMetric(BaseMetric):
             target_text = self.text_encoder.normalize_text(target_text)
             pred_text = self.text_encoder.ctc_decode(log_prob_vec[:length])
             wers.append(calc_wer(target_text, pred_text))
-        return statistics.mean(wers)
+        return statistics.fmean(wers)

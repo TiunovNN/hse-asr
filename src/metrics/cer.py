@@ -24,4 +24,4 @@ class CERMetric(BaseMetric):
             target_text = self.text_encoder.normalize_text(target_text)
             pred_text = self.text_encoder.ctc_decode(log_prob_vec[:length])
             cers.append(calc_cer(target_text, pred_text))
-        return statistics.mean(cers)
+        return statistics.fmean(cers)
