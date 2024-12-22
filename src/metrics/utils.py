@@ -1,13 +1,15 @@
-# Based on seminar materials
-
-# Don't forget to support cases when target_text == ''
+from jiwer import wer, cer
 
 
 def calc_cer(target_text, predicted_text) -> float:
-    # TODO
-    pass
+    if not target_text:
+        return int(len(predicted_text) > 0)
+
+    return cer([target_text], [predicted_text])
 
 
 def calc_wer(target_text, predicted_text) -> float:
-    # TODO
-    pass
+    if not target_text:
+        return int(len(predicted_text) > 0)
+
+    return wer([target_text], [predicted_text])
