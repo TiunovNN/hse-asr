@@ -29,7 +29,12 @@ def main(config):
     writer = instantiate(config.writer, logger, project_config)
 
     if config.trainer.device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        # elif torch.mps.device_count():
+        #     device = "mps"
+        else:
+            device = "cpu"
     else:
         device = config.trainer.device
 

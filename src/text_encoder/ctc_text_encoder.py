@@ -2,8 +2,8 @@ import re
 from string import ascii_lowercase
 
 import torch
-from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 from pyctcdecode import build_ctcdecoder
+from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 
 # TODO add CTC decode
 # TODO add BPE, LM, Beam Search support
@@ -43,7 +43,7 @@ class CTCTextEncoder:
     def encode(self, text) -> torch.Tensor:
         text = self.normalize_text(text)
         try:
-            return torch.Tensor(self.char2ind[char] for char in text).unsqueeze(0)
+            return torch.Tensor([self.char2ind[char] for char in text]).unsqueeze(0)
         except KeyError:
             unknown_chars = set(char for char in text if char not in self.char2ind)
             raise Exception(
@@ -60,7 +60,7 @@ class CTCTextEncoder:
         Returns:
             raw_text (str): raw text with empty tokens and repetitions.
         """
-        return ''.join(self.ind2char[int(ind)] for ind in inds).strip()
+        return "".join(self.ind2char[int(ind)] for ind in inds).strip()
 
     def ctc_decode(self, log_probs: torch.Tensor) -> str:
         """
@@ -71,7 +71,7 @@ class CTCTextEncoder:
                 probability distribution over labels; output of acoustic model.
 
         """
-        return self.ctc_decoder.decode(log_probs)
+        return self.ctc_decoder.decode(log_probs.detach().numpy())
 
     @staticmethod
     def normalize_text(text: str):
@@ -86,7 +86,7 @@ class CTCBeamSearchTextEncoder(CTCTextEncoder):
     LM_WEIGHT = 3.23
     WORD_SCORE = -0.26
 
-    def __init__(self, alphabet=None, lm_model_name=None **kwargs):
+    def __init__(self, alphabet=None, lm_model_name=None, **kwargs):
         super().__init__(alphabet, **kwargs)
         lexicon = None
         tokens = self.vocab
@@ -117,6 +117,6 @@ class CTCBeamSearchTextEncoder(CTCTextEncoder):
                 probability distribution over labels; output of acoustic model.
 
         """
-        beam_search_result = self.beam_search_decoder([inds])
-        beam_search_transcript = ' '.join(beam_search_result[0][0].words).strip()
+        beam_search_result = self.beam_search_decoder([log_probs])
+        beam_search_transcript = " ".join(beam_search_result[0][0].words).strip()
         return beam_search_transcript

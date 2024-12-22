@@ -1,3 +1,4 @@
+from itertools import islice
 from pathlib import Path
 
 import pandas as pd
@@ -98,13 +99,13 @@ class Trainer(BaseTrainer):
 
         log_probs = log_probs.cpu()
         predicted_texts = [
-            self.text_encoder.ctc_decode(inds[: int(length)])
-            for inds, length in zip(log_probs, log_probs_length)
+            self.text_encoder.ctc_decode(logits[: int(length), :])
+            for logits, length in zip(log_probs, log_probs_length)
         ]
         tuples = zip(predicted_texts, text, audio_path)
 
         rows = {}
-        for pred, target, audio_path in tuples[:examples_to_log]:
+        for pred, target, audio_path in islice(tuples, examples_to_log):
             target = self.text_encoder.normalize_text(target)
             wer = calc_wer(target, pred) * 100
             cer = calc_cer(target, pred) * 100
