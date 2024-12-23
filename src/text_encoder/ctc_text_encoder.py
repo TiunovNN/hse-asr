@@ -15,7 +15,7 @@ from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 class CTCTextEncoder:
     EMPTY_TOK = ""
 
-    def __init__(self, alphabet=None, **kwargs):
+    def __init__(self, alphabet=None, beams: int = 1, **kwargs):
         """
         Args:
             alphabet (list): alphabet for language. If None, it will be
@@ -32,6 +32,7 @@ class CTCTextEncoder:
         self.char2ind = {v: k for k, v in self.ind2char.items()}
         self.empty_ind = 0
         self.ctc_decoder = build_ctcdecoder(self.vocab)
+        self.beams = beams
 
     def __len__(self):
         return len(self.vocab)
@@ -71,7 +72,10 @@ class CTCTextEncoder:
                 probability distribution over labels; output of acoustic model.
 
         """
-        return self.ctc_decoder.decode(log_probs.detach().numpy())
+        return self.ctc_decoder.decode(
+            log_probs.detach().numpy(),
+            beam_width=self.beams,
+        )
 
     @staticmethod
     def normalize_text(text: str):
@@ -80,16 +84,16 @@ class CTCTextEncoder:
         return text
 
 
-class CTCBeamSearchTextEncoder(CTCTextEncoder):
+class CTCTextEncoderWithLM(CTCTextEncoder):
     # I have no idea why these values is correct, but I have taken them "as is" from
     # https://pytorch.org/audio/main/tutorials/asr_inference_with_ctc_decoder_tutorial.html
     LM_WEIGHT = 3.23
     WORD_SCORE = -0.26
 
-    def __init__(self, alphabet=None, lm_model_name=None, **kwargs):
+    def __init__(self, alphabet=None, lm_model_name=None, beams: int = 1, **kwargs):
         super().__init__(alphabet, **kwargs)
         lexicon = None
-        tokens = self.vocab
+        tokens = self.vocab + ["|", "<unk>"]
         lm = None
 
         if lm_model_name:
@@ -103,9 +107,10 @@ class CTCBeamSearchTextEncoder(CTCTextEncoder):
             tokens=tokens,
             lm=lm,
             nbest=1,
-            beam_size=1500,
+            beam_size=beams,
             lm_weight=self.LM_WEIGHT,
             word_score=self.WORD_SCORE,
+            blank_token=self.EMPTY_TOK,
         )
 
     def ctc_decode(self, log_probs: torch.Tensor) -> str:
