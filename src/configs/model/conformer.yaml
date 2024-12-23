@@ -1,0 +1,6 @@
+_target_: src.model.Conformer
+n_feats: 128
+fc_hidden: 512
+num_heads: 8
+num_layers: 5
+depthwise_conv_kernel_size: 31
