@@ -19,9 +19,8 @@ class WERMetric(BaseMetric):
         self, log_probs: Tensor, log_probs_length: Tensor, text: list[str], **kwargs
     ):
         wers = []
-        lengths = log_probs_length.detach().numpy()
-        for log_prob_vec, length, target_text in zip(log_probs.cpu(), lengths, text):
+        pred_texts = self.text_encoder.ctc_decode(log_probs)
+        for pred_text, target_text in zip(pred_texts, text):
             target_text = self.text_encoder.normalize_text(target_text)
-            pred_text = self.text_encoder.ctc_decode(log_prob_vec[: int(length), :])
             wers.append(calc_wer(target_text, pred_text))
         return statistics.fmean(wers)

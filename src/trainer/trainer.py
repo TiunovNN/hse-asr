@@ -98,10 +98,7 @@ class Trainer(BaseTrainer):
         # this logging can also be improved significantly
 
         log_probs = log_probs.cpu()
-        predicted_texts = [
-            self.text_encoder.ctc_decode(logits[: int(length), :])
-            for logits, length in zip(log_probs, log_probs_length)
-        ]
+        predicted_texts = self.text_encoder.ctc_decode(log_probs)
         tuples = zip(predicted_texts, text, audio_path)
 
         rows = {}

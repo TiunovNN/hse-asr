@@ -1,6 +1,7 @@
 import re
 from string import ascii_lowercase
 
+import multiprocessing
 import torch
 from pyctcdecode import build_ctcdecoder
 from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
@@ -63,19 +64,22 @@ class CTCTextEncoder:
         """
         return "".join(self.ind2char[int(ind)] for ind in inds).strip()
 
-    def ctc_decode(self, log_probs: torch.Tensor) -> str:
+    def ctc_decode(self, log_probs: torch.Tensor) -> list[str]:
         """
         CTC decoding
 
         Args:
-            log_probs (torch.Tensor): CPU tensor of shape `(frame, num_tokens)` storing sequences of
+            log_probs (torch.Tensor): CPU tensor of shape `(batch, frame, num_tokens)` storing sequences of
                 probability distribution over labels; output of acoustic model.
 
         """
-        return self.ctc_decoder.decode(
-            log_probs.detach().numpy(),
-            beam_width=self.beams,
-        )
+
+        with multiprocessing.get_context("fork").Pool() as pool:
+            return self.ctc_decoder.decode_batch(
+                pool,
+                log_probs.detach().numpy(),
+                beam_width=self.beams,
+            )
 
     @staticmethod
     def normalize_text(text: str):
