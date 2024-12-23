@@ -34,6 +34,7 @@ class CTCTextEncoder:
         self.empty_ind = 0
         self.ctc_decoder = build_ctcdecoder(self.vocab)
         self.beams = beams
+        self.pool = None
 
     def __len__(self):
         return len(self.vocab)
@@ -73,13 +74,14 @@ class CTCTextEncoder:
                 probability distribution over labels; output of acoustic model.
 
         """
+        if not self.pool:
+            self.pool = multiprocessing.get_context("fork").Pool()
 
-        with multiprocessing.get_context("fork").Pool() as pool:
-            return self.ctc_decoder.decode_batch(
-                pool,
-                log_probs.detach().numpy(),
-                beam_width=self.beams,
-            )
+        return self.ctc_decoder.decode_batch(
+            self.pool,
+            log_probs.detach().numpy(),
+            beam_width=self.beams,
+        )
 
     @staticmethod
     def normalize_text(text: str):
