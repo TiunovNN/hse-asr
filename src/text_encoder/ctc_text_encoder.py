@@ -1,6 +1,6 @@
 import re
 from string import ascii_lowercase
-from itertools import islice
+from itertools import islice, chain, pairwise
 
 import multiprocessing
 import torch
@@ -81,6 +81,11 @@ class CTCTextEncoder:
             results = []
             for pred_vec, length in zip(predictions, lengths):
                 pred_vec = islice(pred_vec, length)
+                pred_vec = (
+                    right
+                    for left, right in pairwise(chain([-1], pred_vec))
+                    if left != right
+                )
                 pred_vec = (
                     self.ind2char[i]
                     for i in pred_vec
