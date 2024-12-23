@@ -21,7 +21,7 @@ loss_function:
 text_encoder:
   _target_: src.text_encoder.CTCTextEncoder
 writer:
-  run_name: baseline1
+  run_name: baseline2
 trainer:
   log_step: 50
   n_epochs: 50
