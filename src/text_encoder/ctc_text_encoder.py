@@ -1,5 +1,6 @@
 import re
 from string import ascii_lowercase
+from itertools import islice
 
 import multiprocessing
 import torch
@@ -65,7 +66,7 @@ class CTCTextEncoder:
         """
         return "".join(self.ind2char[int(ind)] for ind in inds).strip()
 
-    def ctc_decode(self, log_probs: torch.Tensor) -> list[str]:
+    def ctc_decode(self, log_probs: torch.Tensor, log_probs_length: torch.Tensor) -> list[str]:
         """
         CTC decoding
 
@@ -74,12 +75,26 @@ class CTCTextEncoder:
                 probability distribution over labels; output of acoustic model.
 
         """
+        if self.beams == 1:
+            predictions = torch.argmax(log_probs, dim=-1).cpu()
+            lengths = log_probs_length.detach().numpy()
+            results = []
+            for pred_vec, length in zip(predictions, lengths):
+                pred_vec = islice(pred_vec, length)
+                pred_vec = (
+                    self.ind2char[i]
+                    for i in pred_vec
+                    if i != self.empty_ind
+                )
+                results.append(''.join(pred_vec))
+            return results
+
         if not self.pool:
             self.pool = multiprocessing.get_context("fork").Pool()
 
         return self.ctc_decoder.decode_batch(
             self.pool,
-            log_probs.detach().numpy(),
+            log_probs.cpu().detach().numpy(),
             beam_width=self.beams,
         )
 

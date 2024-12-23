@@ -19,7 +19,7 @@ class WERMetric(BaseMetric):
         self, log_probs: Tensor, log_probs_length: Tensor, text: list[str], **kwargs
     ):
         wers = []
-        pred_texts = self.text_encoder.ctc_decode(log_probs)
+        pred_texts = self.text_encoder.ctc_decode(log_probs, log_probs_length)
         for pred_text, target_text in zip(pred_texts, text):
             target_text = self.text_encoder.normalize_text(target_text)
             wers.append(calc_wer(target_text, pred_text))

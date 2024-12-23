@@ -139,15 +139,14 @@ class Inferencer(BaseTrainer):
 
         batch_size = batch["logits"].shape[0]
         current_id = batch_idx * batch_size
+        batch['predicted_text'] = self.text_encoder.ctc_decode(batch['log_probs'], batch['log_probs_length'])
 
         for i in range(batch_size):
             # clone because of
             # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["log_probs"][i].clone()
             target_text = batch["text"][i]
             target_text = self.text_encoder.normalize_text(target_text)
-            length = batch["log_probs_length"][i]
-            predicted_text = self.text_encoder.ctc_decode(logits[:length])
+            predicted_text = batch['predicted_text'][i]
 
             output_id = current_id + i
 
