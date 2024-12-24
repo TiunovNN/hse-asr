@@ -77,10 +77,11 @@ class CTCTextEncoder:
         """
         if self.beams == 1:
             predictions = torch.argmax(log_probs, dim=-1).cpu()
-            lengths = log_probs_length.detach().numpy()
+            lengths = log_probs_length.detach().cpu().numpy()
             results = []
             for pred_vec, length in zip(predictions, lengths):
                 pred_vec = islice(pred_vec, length)
+                pred_vec = map(int, pred_vec)
                 pred_vec = (
                     right
                     for left, right in pairwise(chain([-1], pred_vec))
