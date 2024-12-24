@@ -2,7 +2,7 @@ defaults:
   - model: conformer
   - writer: wandb
   - metrics: example
-  - datasets: example
+  - datasets: train-clean-360
   - dataloader: large_batch_size
   - transforms: wav_aug
   - _self_
