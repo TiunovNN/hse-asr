@@ -1,5 +1,8 @@
 import torch
 from tqdm.auto import tqdm
+from urllib.parse import urlparse
+
+import wget
 
 from src.metrics.tracker import MetricTracker
 from src.metrics.utils import calc_cer, calc_wer
@@ -85,6 +88,17 @@ class Inferencer(BaseTrainer):
             # init model
             self._from_pretrained(config.inferencer.get("from_pretrained"))
 
+    def _from_pretrained(self, pretrained_path):
+        logger = self.logger.info if hasattr(self, "logger") else print
+        if (parsed_url := urlparse(pretrained_path)).scheme in ('http', 'https'):
+            dst_path = self.save_path / parsed_url.path.rpartition('/')[-1]
+            if not dst_path.exists():
+                logger(f'Download {pretrained_path} to {dst_path}')
+                wget.download(pretrained_path, str(dst_path))
+            pretrained_path = dst_path
+
+        return super()._from_pretrained(pretrained_path)
+
     def run_inference(self):
         """
         Run inference on each partition.
@@ -137,7 +151,7 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
+        batch_size = batch["log_probs"].shape[0]
         current_id = batch_idx * batch_size
         batch['predicted_text'] = self.text_encoder.ctc_decode(batch['log_probs'], batch['log_probs_length'])
 

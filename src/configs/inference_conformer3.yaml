@@ -1,0 +1,18 @@
+defaults:
+  - model: conformer
+  - metrics: example
+  - datasets: test-clean
+  - dataloader: example
+  - transforms: example_only_instance
+  - _self_
+text_encoder:
+  _target_: src.text_encoder.CTCTextEncoderWithLM
+  beams: 100
+  lm_model: lowercase_3-gram.pruned.1e-7.arpa
+  unigram_file: librispeech-vocab.txt
+inferencer:
+  device_tensors: ["spectrogram", "text_encoded", "spectrogram_length"] # which tensors should be on device (ex. GPU)
+  device: auto # device name or "auto"
+  save_path: "conformer3" # any name here, can be a dataset name
+  seed: 1
+  from_pretrained: "https://storage.yandexcloud.net/asr-tiunovnn/conformer3.pth" # path to the pretrained model

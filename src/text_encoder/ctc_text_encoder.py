@@ -1,7 +1,9 @@
 import re
 from string import ascii_lowercase
 from itertools import islice, chain, pairwise
+from functools import cache
 
+import kenlm
 import multiprocessing
 import torch
 from pyctcdecode import build_ctcdecoder
@@ -13,6 +15,9 @@ from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 # The design can be remarkably improved
 # to calculate stuff more efficiently and prettier
 
+@cache
+def create_pool():
+    return multiprocessing.get_context("fork").Pool()
 
 class CTCTextEncoder:
     EMPTY_TOK = ""
@@ -35,7 +40,6 @@ class CTCTextEncoder:
         self.empty_ind = 0
         self.ctc_decoder = build_ctcdecoder(self.vocab)
         self.beams = beams
-        self.pool = None
 
     def __len__(self):
         return len(self.vocab)
@@ -95,11 +99,9 @@ class CTCTextEncoder:
                 results.append(''.join(pred_vec))
             return results
 
-        if not self.pool:
-            self.pool = multiprocessing.get_context("fork").Pool()
-
+        pool = create_pool()
         return self.ctc_decoder.decode_batch(
-            self.pool,
+            pool,
             log_probs.cpu().detach().numpy(),
             beam_width=self.beams,
         )
@@ -117,38 +119,17 @@ class CTCTextEncoderWithLM(CTCTextEncoder):
     LM_WEIGHT = 3.23
     WORD_SCORE = -0.26
 
-    def __init__(self, alphabet=None, lm_model_name=None, beams: int = 1, **kwargs):
-        super().__init__(alphabet, **kwargs)
-        lexicon = None
-        tokens = self.vocab + ["|", "<unk>"]
-        lm = None
+    def __init__(self, lm_model, unigram_file, **kwargs):
+        super().__init__(**kwargs)
+        self.kenlm_model = kenlm.Model(lm_model)
+        with open(unigram_file) as f:
+            self.unigram_list = [
+                line.lower()
+                for line in filter(None, map(str.strip, f))
+            ]
 
-        if lm_model_name:
-            self.lm_files = download_pretrained_files(lm_model_name)
-            lexicon = self.lm_files.lexicon
-            tokens = self.lm_files.tokens
-            lm = self.lm_files.lm
-
-        self.beam_search_decoder = ctc_decoder(
-            lexicon=lexicon,
-            tokens=tokens,
-            lm=lm,
-            nbest=1,
-            beam_size=beams,
-            lm_weight=self.LM_WEIGHT,
-            word_score=self.WORD_SCORE,
-            blank_token=self.EMPTY_TOK,
+        self.ctc_decoder = build_ctcdecoder(
+            self.vocab,
+            lm_model,
+            self.unigram_list,
         )
-
-    def ctc_decode(self, log_probs: torch.Tensor) -> str:
-        """
-        CTC decoding
-
-        Args:
-            log_probs (torch.Tensor): CPU tensor of shape `(frame, num_tokens)` storing sequences of
-                probability distribution over labels; output of acoustic model.
-
-        """
-        beam_search_result = self.beam_search_decoder([log_probs])
-        beam_search_transcript = " ".join(beam_search_result[0][0].words).strip()
-        return beam_search_transcript
