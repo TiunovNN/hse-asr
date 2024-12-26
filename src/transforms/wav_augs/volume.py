@@ -1,5 +1,5 @@
 from torchaudio.transforms import Vol
-from .audiomentation_base import InstanceWavAug
+from .base import InstanceWavAug
 
 
 class Volume(InstanceWavAug):

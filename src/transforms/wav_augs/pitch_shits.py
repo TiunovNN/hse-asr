@@ -1,5 +1,5 @@
 import torch_audiomentations
-from .audiomentation_base import InstanceWavAug
+from .base import InstanceWavAug
 
 
 class PitchShift(InstanceWavAug):
