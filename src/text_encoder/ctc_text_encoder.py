@@ -1,3 +1,4 @@
+import atexit
 import re
 from string import ascii_lowercase
 from itertools import islice, chain, pairwise
@@ -6,6 +7,7 @@ from functools import cache
 import kenlm
 import multiprocessing
 import torch
+from concurrent.futures import ProcessPoolExecutor
 from pyctcdecode import build_ctcdecoder
 from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 
@@ -17,7 +19,9 @@ from torchaudio.models.decoder import ctc_decoder, download_pretrained_files
 
 @cache
 def create_pool():
-    return multiprocessing.get_context("fork").Pool()
+    pool = ProcessPoolExecutor(mp_context=multiprocessing.get_context("fork"))
+    atexit.register(pool.shutdown)
+    return pool
 
 class CTCTextEncoder:
     EMPTY_TOK = ""

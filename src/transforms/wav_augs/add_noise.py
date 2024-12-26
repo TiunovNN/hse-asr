@@ -1,7 +1,7 @@
 import torch_audiomentations
-from .audiomentation_base import BaseAudiomentation
+from .base import InstanceWavAug
 
 
-class AddColoredNoise(BaseAudiomentation):
+class AddColoredNoise(InstanceWavAug):
     def __init__(self, *args, **kwargs):
         super().__init__(aug=torch_audiomentations.AddColoredNoise(*args, **kwargs))
