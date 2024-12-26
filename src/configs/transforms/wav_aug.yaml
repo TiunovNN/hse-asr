@@ -1,8 +1,4 @@
 defaults:
   - batch_transforms: wav_aug
+  - instance_transforms: wav_aug
   - _self_
-
-# these lines are required if you do not use instance transforms
-instance_transforms:
-  train: null
-  inference: null
